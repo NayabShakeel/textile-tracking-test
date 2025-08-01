@@ -1,48 +1,24 @@
-import { useEffect, useRef } from 'react';
-import jsQR from 'jsqr';
+import React, { useEffect, useState } from 'react'
 
-function Scanner({ onScan }) {
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
+function Scanner() {
+  const [result, setResult] = useState('')
 
-  useEffect(() => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-      .then(stream => {
-        video.srcObject = stream;
-        video.play();
-      });
-
-    const scan = () => {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.height = video.videoHeight;
-        canvas.width = video.videoWidth;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
-        if (code) {
-          onScan(code.data);
-        }
-      }
-      requestAnimationFrame(scan);
-    };
-    scan();
-
-    return () => {
-      video.srcObject?.getTracks().forEach(track => track.stop());
-    };
-  }, [onScan]);
+  const handleScan = async () => {
+    try {
+      const res = await fetch('/api/scan') // Call backend route
+      const data = await res.json()
+      setResult(data.message)
+    } catch (err) {
+      setResult('Failed to scan.')
+    }
+  }
 
   return (
     <div>
-      <video ref={videoRef} style={{ display: 'none' }} />
-      <canvas ref={canvasRef} />
+      <button onClick={handleScan}>Scan Barcode</button>
+      <p>{result}</p>
     </div>
-  );
+  )
 }
 
-export default Scanner;
-
+export default Scanner
